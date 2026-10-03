@@ -107,7 +107,10 @@
     /* 경매·공매 요약 */
     var au = (typeof AUCTIONS !== "undefined") ? AUCTIONS : { court: [], onbid: [] };
     var court = au.court || [], onbid = au.onbid || [];
-    var total = court.length + onbid.length;
+    var courtB = au.courtBldg || [], onbidB = au.onbidBldg || [];
+    var landN = court.length + onbid.length;
+    var bldgN = courtB.length + onbidB.length;
+    var total = landN + bldgN;
     var summary = document.getElementById("auction-summary");
     var detail = document.getElementById("auction-detail");
     if (!summary) return;
@@ -116,11 +119,11 @@
       if (detail) detail.textContent = "";
       return;
     }
-    summary.textContent = "지금 나온 땅 " + total + "건";
+    summary.textContent = "지금 나온 매물 " + total + "건";
     if (detail) {
       var parts = [];
-      if (court.length) parts.push("법원경매 " + court.length + "건");
-      if (onbid.length) parts.push("온비드공매 " + onbid.length + "건");
+      if (landN) parts.push("토지 " + landN + "건");
+      if (bldgN) parts.push("건물 " + bldgN + "건");
       detail.textContent = parts.join(" · ");
     }
   });
