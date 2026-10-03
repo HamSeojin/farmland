@@ -12,7 +12,6 @@
 (function () {
   "use strict";
 
-  var ADDR_DONGHAE = "강원특별자치도 동해시 천곡동";
   // ?mode=register: 설정 화면에서 "지도에서 고르기"로 온 경우. 필지 탭 시 등록 버튼 표시
   var REGISTER_MODE = /[?&]mode=register\b/.test(location.search);
 
@@ -373,7 +372,7 @@
       });
     });
 
-    // 바로가기 버튼: 등록된 땅 + 동해 집 근처
+    // 바로가기 버튼: 등록된 땅
     (function buildShortcuts() {
       var bar = document.getElementById("shortcut-bar");
       if (!bar) return;
@@ -400,20 +399,5 @@
         })(list[k]);
       }
     })();
-    var btns = document.querySelectorAll(".shortcut-btn");
-    for (var i = 0; i < btns.length; i++) {
-      // 등록된 땅 버튼은 위에서 직접 리스너를 달았으므로 여기선 동해 버튼만 처리
-      if (btns[i].classList.contains("our")) continue;
-      btns[i].addEventListener("click", function () {
-        hideError(); closeSheet();
-        var self = this;
-        self.disabled = true;
-        geocode(ADDR_DONGHAE).then(function (p) {
-          map.setView([p.lat, p.lng], 15);
-        }).catch(function () {
-          showError();
-        }).then(function () { self.disabled = false; });
-      });
-    }
   });
 })();
