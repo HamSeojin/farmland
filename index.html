@@ -28,7 +28,7 @@
       <div id="our-land-body"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="trade-card">
       <h2>거래내역 정보</h2>
       <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;">9월에는 거래가 없었어요</p>
       <p class="muted" style="font-size:1.05rem;">8월 거래 1건<br>밭 <span class="area" data-m2="456"></span> · 9,622만원</p>
@@ -36,7 +36,7 @@
       <a class="btn btn-outline" href="trades.html">인근 거래내역 더 보기</a>
     </section>
 
-    <section class="card">
+    <section class="card" id="auction-card">
       <h2>인근 경매·공매</h2>
       <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;" id="auction-summary">지금 나온 땅 0건</p>
       <p class="muted" style="font-size:1.05rem;" id="auction-detail"></p>
@@ -44,7 +44,7 @@
       <a class="btn btn-outline" href="auctions.html">경매·공매 보기</a>
     </section>
 
-    <section class="card card-green">
+    <section class="card card-green" id="census-card">
       <h2>농지 전수조사</h2>
       <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;">우리가 할 일: 없음</p>
       <p style="font-size:1.05rem;margin:0.3rem 0 0;">우리 땅은 조사에서 정상으로 확인됐어요.<br>따로 하실 일 없어요.</p>
@@ -103,6 +103,15 @@
     }
     var sub = document.getElementById("header-sub");
     if (sub && parcels.length && parcels[0].addr) sub.textContent = parcels[0].addr;
+
+    /* 땅 미등록 시: 땅 연동 정보 카드 숨김 (등록 전에는 보여주지 않음) */
+    if (!parcels.length) {
+      ["trade-card", "auction-card", "census-card"].forEach(function (id) {
+        var c = document.getElementById(id);
+        if (c) c.style.display = "none";
+      });
+      return;
+    }
 
     /* 경매·공매 요약 */
     var au = (typeof AUCTIONS !== "undefined") ? AUCTIONS : { court: [], onbid: [] };
