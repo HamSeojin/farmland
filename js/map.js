@@ -27,7 +27,11 @@
   }
 
   function keyMissing() {
-    return !window.VWORLD_KEY || VWORLD_KEY.indexOf("여기에") === 0;
+    try {
+      return typeof VWORLD_KEY === "undefined" || !VWORLD_KEY || VWORLD_KEY.indexOf("여기에") === 0;
+    } catch (e) {
+      return true;
+    }
   }
   function showError() {
     document.getElementById("map-error").classList.remove("hidden");
