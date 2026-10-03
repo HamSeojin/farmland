@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>우리 땅 소식</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="app-header">
+    <div class="header-top">
+      <div>
+        <h1 class="header-title">우리 땅 소식</h1>
+        <p class="header-sub" id="header-sub">우리 땅을 등록해주세요</p>
+      </div>
+    </div>
+    <button class="unit-toggle" type="button">m²로 보기</button>
+  </header>
+
+  <main class="content">
+    <section class="card" id="our-land-card">
+      <h2>우리 토지</h2>
+      <div id="our-land-body"></div>
+    </section>
+
+    <section class="card">
+      <h2>거래내역 정보</h2>
+      <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;">9월에는 거래가 없었어요</p>
+      <p class="muted" style="font-size:1.05rem;">8월 거래 1건<br>밭 <span class="area" data-m2="456"></span> · 9,622만원</p>
+      <p class="note">2026년 9월 기준 · 학산리 논·밭 거래</p>
+      <a class="btn btn-outline" href="trades.html">인근 거래내역 더 보기</a>
+    </section>
+
+    <section class="card">
+      <h2>인근 경매·공매</h2>
+      <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;" id="auction-summary">지금 나온 땅 0건</p>
+      <p class="muted" style="font-size:1.05rem;" id="auction-detail"></p>
+      <p class="note">2026년 10월 기준 · 강릉·동해·삼척 법원경매 + 온비드공매</p>
+      <a class="btn btn-outline" href="auctions.html">경매·공매 보기</a>
+    </section>
+
+    <section class="card card-green">
+      <h2>농지 전수조사</h2>
+      <p style="font-size:1.25rem;font-weight:800;margin:0.2rem 0;">우리가 할 일: 없음</p>
+      <p style="font-size:1.05rem;margin:0.3rem 0 0;">우리 땅은 조사에서 정상으로 확인됐어요.<br>따로 하실 일 없어요.</p>
+      <p class="note">2026년 9월 기준</p>
+      <a class="btn btn-outline" href="census.html">전수조사 소식 보기</a>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html">첫 화면</a>
+    <a href="map.html">지도에서 찾기</a>
+  </nav>
+</div>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var F = window.FarmlandApp || {};
+
+    /* 우리 토지 카드: localStorage 설정값으로 렌더링 */
+    var body = document.getElementById("our-land-body");
+    var parcels = F.getParcels ? F.getParcels() : [];
+    if (body) {
+      if (!parcels.length) {
+        body.innerHTML =
+          "<p style='font-size:1.25rem;font-weight:800;margin:0.2rem 0;'>아직 등록된 땅이 없어요</p>" +
+          "<p class='muted' style='font-size:1.05rem;'>우리 땅을 등록하면<br>여기에 면적과 땅값이 보여요.</p>" +
+          "<a class='btn btn-primary' href='settings.html'>우리 땅 등록하기</a>";
+      } else {
+        var html = "", totalArea = 0, totalManwon = 0, allPriced = true;
+        parcels.forEach(function (p) {
+          var shareNote = (p.share && p.share !== "전부") ? " (" + esc(p.share) + " 지분)" : "";
+          html += "<div class='kv'><span class='k'><b>" + esc(p.jibun) + "</b> · " + esc(F.jimokLabel(p.jimok)) + shareNote + "</span>"
+            + "<span class='v area' data-m2='" + Math.round(Number(p.area) || 0) + "'></span></div>";
+          totalArea += Number(p.area) || 0;
+          var t = F.parcelTotalManwon(p);
+          if (t == null) allPriced = false; else totalManwon += t;
+        });
+        html += "<div class='kv'><span class='k'>전체</span><span class='v area' data-m2='" + Math.round(totalArea) + "'></span></div>";
+        html += "<div class='kv'><span class='k'>공시지가 합계</span><span class='big-num'>"
+          + (allPriced ? esc(F.moneyManwon(totalManwon)) : esc(F.moneyManwon(totalManwon)) + " *") + "</span></div>";
+        if (!allPriced) html += "<p class='note'>* 공시지가를 입력하지 않은 땅이 있어요</p>";
+        html += "<a class='btn btn-primary' href='map.html'>지도에서 우리 땅 보기</a> ";
+        html += "<a class='btn btn-outline' href='settings.html'>땅 설정 바꾸기</a>";
+        body.innerHTML = html;
+      }
+      if (F.renderAreas) F.renderAreas();
+    }
+    var sub = document.getElementById("header-sub");
+    if (sub && parcels.length && parcels[0].addr) sub.textContent = parcels[0].addr;
+
+    /* 경매·공매 요약 */
+    var au = (typeof AUCTIONS !== "undefined") ? AUCTIONS : { court: [], onbid: [] };
+    var court = au.court || [], onbid = au.onbid || [];
+    var total = court.length + onbid.length;
+    var summary = document.getElementById("auction-summary");
+    var detail = document.getElementById("auction-detail");
+    if (!summary) return;
+    if (total === 0) {
+      summary.textContent = "수집 준비 중이에요";
+      if (detail) detail.textContent = "";
+      return;
+    }
+    summary.textContent = "지금 나온 땅 " + total + "건";
+    if (detail) {
+      var parts = [];
+      if (court.length) parts.push("법원경매 " + court.length + "건");
+      if (onbid.length) parts.push("온비드공매 " + onbid.length + "건");
+      detail.textContent = parts.join(" · ");
+    }
+  });
+})();
+</script>
+</body>
+</html>
