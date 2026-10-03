@@ -204,12 +204,14 @@
   }
   function auctionSheet(a) {
     var isCourt = a._kind === "court";
+    var isBldg = !!a.bldg;
     var dateRow = isCourt
       ? '<div class="kv"><span class="k">매각기일</span><span class="v">' + (a.saleDate || "–") + "</span></div>"
       : '<div class="kv"><span class="k">입찰기간</span><span class="v">' + (a.bidPeriod || "–") + "</span></div>";
+    var areaLabel = isBldg ? "종류 · 건물면적" : "종류 · 면적";
     return "<h2>" + (isCourt ? "법원경매" : "온비드공매") + "</h2>"
       + '<div class="kv"><span class="k">소재지</span><span class="v">' + (a.addrShort || "") + "</span></div>"
-      + '<div class="kv"><span class="k">종류 · 면적</span><span class="v">' + jimokEasyMap(a.kind)
+      + '<div class="kv"><span class="k">' + areaLabel + '</span><span class="v">' + jimokEasyMap(a.kind)
       + ' <span class="area" data-m2="' + (a.areaM2 || 0) + '"></span></span></div>'
       + '<div class="kv"><span class="k">감정가</span><span class="v">' + moneyFullMap(a.apslManwon) + "</span></div>"
       + '<div class="kv"><span class="k">최저가</span><span class="v"><b>' + moneyFullMap(a.lowManwon) + "</b></span></div>"
@@ -287,16 +289,25 @@
       }).catch(function () { /* 기본 화면 유지 */ });
     }
 
-    /* 경매·공매 핀 (기본 표시, 토글로 on/off) */
+    /* 경매·공매 핀 (기본 표시, 토글로 on/off) — 경매 페이지의 토지·건물 탭을 따름 */
     var au = (typeof AUCTIONS !== "undefined") ? AUCTIONS : { court: [], onbid: [] };
+    var aucTab = "land";
+    try { aucTab = localStorage.getItem("auctionTab") || "land"; } catch (e) {}
     var aucItems = [];
-    (au.court || []).forEach(function (a) { a._kind = "court"; aucItems.push(a); });
-    (au.onbid || []).forEach(function (a) { a._kind = "onbid"; aucItems.push(a); });
+    ["court", "courtBldg", "onbid", "onbidBldg"].forEach(function (key) {
+      (au[key] || []).forEach(function (a) {
+        if (!!a.bldg !== (aucTab === "bldg")) return;
+        a._kind = key.indexOf("court") === 0 ? "court" : "onbid";
+        aucItems.push(a);
+      });
+    });
     var aucLayer = L.layerGroup().addTo(map);
     var aucVisible = true;
     var aucToggle = document.getElementById("auction-toggle");
     function renderAucToggle() {
-      var label = "경매 " + (au.court || []).length + " · 공매 " + (au.onbid || []).length;
+      var label = "경매 " + aucItems.filter(function (a) { return a._kind === "court"; }).length
+        + " · 공매 " + aucItems.filter(function (a) { return a._kind === "onbid"; }).length
+        + (aucTab === "bldg" ? " (건물)" : " (토지)");
       aucToggle.textContent = (aucVisible ? "경매·공매 숨기기 (" : "경매·공매 보기 (") + label + ")";
       aucToggle.classList.toggle("off", !aucVisible);
     }
