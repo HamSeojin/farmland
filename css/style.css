@@ -1,0 +1,187 @@
+/* 우리 땅 앱 공용 스타일 — 라이트 고정, 모든 단위 rem, 기본 글씨 20px */
+html { font-size: 20px; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  background: #f4f6f1;
+  color: #1a1a1a;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+.page { max-width: 34rem; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: #fff; }
+
+/* 상단 헤더 */
+.app-header { background: #2e6b34; color: #fff; padding: 1rem 1rem 1.1rem; }
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.header-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.header-sub { font-size: 0.95rem; opacity: 0.92; margin: 0.25rem 0 0; }
+/* 면적 단위 토글 — 크게, 눈에 잘 띄게 */
+.unit-toggle {
+  display: block; width: 100%;
+  margin-top: 0.9rem; padding: 0.8rem 1rem;
+  min-height: 3rem;
+  font-size: 1.15rem; font-weight: 800;
+  color: #2e6b34; background: #fff;
+  border: none; border-radius: 0.9rem;
+  cursor: pointer;
+}
+.unit-toggle:active { background: #e8f3e9; }
+
+/* 본문 */
+.content { flex: 1; padding: 0.9rem 0.8rem 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.card {
+  background: #f7f9f4; border: 1px solid #dfe6da;
+  border-radius: 1rem; padding: 1.1rem;
+}
+.card h2 { font-size: 1.2rem; margin: 0 0 0.7rem; }
+.card-green { background: #e8f3e9; border-color: #bcd8bf; }
+.card-green h2 { color: #1d4a22; }
+.kv { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0; font-size: 1.05rem; }
+.kv + .kv { border-top: 1px solid #e2e8de; }
+.kv .k { color: #555; }
+.kv .v { font-weight: 700; text-align: right; }
+.big-num { font-size: 1.45rem; font-weight: 800; color: #2e6b34; }
+.muted { color: #666; font-size: 0.95rem; }
+.note { font-size: 0.9rem; color: #666; margin-top: 0.6rem; }
+
+/* 큰 버튼 */
+.btn {
+  display: block; width: 100%;
+  min-height: 3.2rem; padding: 0.85rem 1rem; margin-top: 0.8rem;
+  font-size: 1.15rem; font-weight: 800; text-align: center; text-decoration: none;
+  border-radius: 0.9rem; cursor: pointer; border: none;
+}
+.btn-primary { background: #2e6b34; color: #fff; }
+.btn-outline { background: #fff; color: #2e6b34; border: 0.14rem solid #2e6b34; }
+.btn:active { opacity: 0.85; }
+
+/* 하단 탭 내비 */
+.bottom-nav {
+  display: flex; border-top: 1px solid #dfe6da; background: #fff;
+  position: sticky; bottom: 0;
+}
+.bottom-nav a {
+  flex: 1; text-align: center; text-decoration: none;
+  padding: 0.9rem 0; min-height: 3.4rem;
+  font-size: 1.1rem; font-weight: 700; color: #777;
+  border-top: 0.2rem solid transparent;
+}
+.bottom-nav a.active { color: #2e6b34; border-top-color: #2e6b34; }
+
+/* 거래 목록 */
+.trade-group { margin-bottom: 0.4rem; }
+.trade-month {
+  font-size: 1.15rem; font-weight: 800; margin: 1rem 0 0.5rem;
+  padding-left: 0.2rem;
+}
+.trade-card {
+  background: #f7f9f4; border: 1px solid #dfe6da; border-radius: 0.9rem;
+  padding: 0.9rem 1rem; margin-bottom: 0.6rem;
+}
+.trade-card .t-date { font-size: 1.05rem; font-weight: 800; }
+.trade-card .t-row { display: flex; justify-content: space-between; font-size: 1rem; padding: 0.2rem 0; }
+.trade-card .t-row .k { color: #555; }
+.trade-card .t-price { font-size: 1.2rem; font-weight: 800; color: #2e6b34; margin-top: 0.3rem; }
+.empty-box {
+  text-align: center; padding: 2.5rem 1rem; color: #555;
+  font-size: 1.15rem; font-weight: 700;
+}
+
+/* 전수조사 */
+.status-box {
+  background: #e8f3e9; border: 0.14rem solid #2e6b34; border-radius: 1rem;
+  padding: 1.2rem; text-align: center;
+}
+.status-box .s-big { font-size: 1.5rem; font-weight: 800; color: #1d4a22; margin: 0.3rem 0; }
+.status-box .s-sub { font-size: 1.05rem; color: #2c5a30; }
+.news-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.news-list li {
+  background: #f7f9f4; border: 1px solid #dfe6da; border-radius: 0.9rem;
+  padding: 0.9rem 1rem; margin-bottom: 0.6rem; font-size: 1rem;
+}
+.news-list .n-title { font-weight: 800; font-size: 1.05rem; margin-bottom: 0.25rem; }
+.check-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.check-list li { padding: 0.5rem 0 0.5rem 1.8rem; position: relative; font-size: 1.05rem; }
+.check-list li::before {
+  content: ""; position: absolute; left: 0; top: 0.75rem;
+  width: 0.9rem; height: 0.5rem;
+  border-left: 0.2rem solid #2e6b34; border-bottom: 0.2rem solid #2e6b34;
+  transform: rotate(-45deg);
+}
+
+/* 지도 페이지 */
+.map-wrap { position: relative; flex: 1; min-height: 24rem; }
+#map { position: absolute; inset: 0; background: #eef3e6; }
+.map-key-notice {
+  margin: 1rem; padding: 1.4rem 1.2rem; text-align: center;
+  background: #fff8e6; border: 0.14rem solid #d9a821; border-radius: 1rem;
+  font-size: 1.1rem; font-weight: 700;
+}
+.shortcut-bar {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+  padding: 0.8rem;
+}
+.shortcut-btn {
+  min-height: 3.2rem; padding: 0.7rem 0.4rem;
+  font-size: 1.05rem; font-weight: 800;
+  border-radius: 0.9rem; border: 0.14rem solid #2e6b34;
+  background: #fff; color: #2e6b34; cursor: pointer;
+}
+.shortcut-btn.our { background: #2e6b34; color: #fff; }
+.auction-toggle {
+  grid-column: 1 / -1; min-height: 3.2rem; padding: 0.7rem 0.4rem;
+  font-size: 1.05rem; font-weight: 800;
+  border-radius: 0.9rem; border: 0.14rem solid #7a5c00;
+  background: #fff8e6; color: #5c4a00; cursor: pointer;
+}
+.auction-toggle.off { background: #fff; color: #888; border-color: #ccc; }
+/* 경매·공매 핀 (Leaflet divIcon) */
+.auc-pin-wrap { background: none; border: none; }
+.auc-pin {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 0.15rem 0.4rem rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.15rem; font-weight: 800;
+}
+.auc-pin.court { background: #c0392b; }
+.auc-pin.onbid { background: #2471a3; }
+.auc-legend {
+  display: flex; gap: 1rem; justify-content: center;
+  font-size: 0.95rem; font-weight: 700; color: #555;
+  padding: 0 0.8rem 0.6rem;
+}
+.auc-legend .dot { display: inline-block; width: 1rem; height: 1rem; border-radius: 50%; margin-right: 0.3rem; vertical-align: baseline; }
+.auc-legend .dot.court { background: #c0392b; }
+.auc-legend .dot.onbid { background: #2471a3; }
+.zoom-btns { position: absolute; right: 0.8rem; top: 0.8rem; z-index: 500; display: flex; flex-direction: column; gap: 0.5rem; }
+.zoom-btns button {
+  width: 3.2rem; height: 3.2rem; font-size: 1.6rem; font-weight: 800;
+  border-radius: 0.8rem; border: 1px solid #ccc; background: #fff; cursor: pointer;
+  box-shadow: 0 0.1rem 0.3rem rgba(0,0,0,0.2);
+}
+/* 하단 시트 */
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 600;
+  background: #fff; border-radius: 1.2rem 1.2rem 0 0;
+  box-shadow: 0 -0.3rem 1rem rgba(0,0,0,0.18);
+  padding: 1rem 1.2rem 1.4rem;
+  max-height: 55%; overflow-y: auto;
+}
+.sheet.hidden { display: none; }
+.sheet-close {
+  float: right; width: 3rem; height: 3rem; font-size: 1.4rem;
+  border: none; background: #f0f0f0; border-radius: 50%; cursor: pointer;
+}
+.sheet h2 { font-size: 1.4rem; margin: 0.2rem 0 0.6rem; }
+.map-hint {
+  position: absolute; left: 0.8rem; bottom: 0.8rem; z-index: 500;
+  background: rgba(255,255,255,0.95); border: 1px solid #ccc; border-radius: 0.8rem;
+  padding: 0.5rem 0.9rem; font-size: 0.95rem; font-weight: 700;
+}
+.map-error {
+  position: absolute; inset: auto 0.8rem 4.5rem 0.8rem; z-index: 700;
+  background: #fff; border: 0.14rem solid #c0392b; border-radius: 1rem;
+  padding: 1.2rem; text-align: center; font-size: 1.1rem; font-weight: 700;
+}
+.map-error.hidden { display: none; }
