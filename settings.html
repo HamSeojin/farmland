@@ -103,9 +103,60 @@
         <input id="f-price" type="number" inputmode="numeric" placeholder="모르면 비워두세요" min="1">
         <p class="hint">비워두면 땅값 합계에 포함되지 않아요.</p>
       </div>
+      <h3 style="font-size:1.3rem;margin:1.4rem 0 0.4rem;">이 땅 이야기</h3>
+      <p class="note">전수조사 자가점검에 써요. 모르면 비워두세요.</p>
+      <div class="form-row">
+        <label for="f-acqtype">갖게 된 이유</label>
+        <select id="f-acqtype">
+          <option value="">선택해주세요</option>
+          <option value="inherit">상속받음</option>
+          <option value="buy">삼 (매매)</option>
+          <option value="gift">증여받음</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="f-acqyear">갖게 된 해</label>
+        <input id="f-acqyear" type="number" inputmode="numeric" placeholder="예: 2018" min="1900" max="2100">
+        <p class="hint">상속이면 돌아가신 해, 산 거면 산 해를 적어주세요.</p>
+      </div>
+      <div class="form-row">
+        <label for="f-usestatus">지금 상태</label>
+        <select id="f-usestatus">
+          <option value="">선택해주세요</option>
+          <option value="rent">남에게 빌려줌</option>
+          <option value="self">직접 농사짓고 있음</option>
+          <option value="idle">놀고 있음</option>
+          <option value="bank">농지은행에 맡김</option>
+        </select>
+      </div>
       <button class="btn btn-primary" type="button" id="btn-add">이 땅 추가하기</button>
       <p class="msg" id="add-msg"></p>
       <p class="note">지도를 눌러 땅을 고르는 기능은 VWorld 키가 있어야 해요. 키가 없으면 여기에 직접 입력해주세요. (js/config.js 파일에 키 입력)</p>
+    </section>
+
+    <section class="card section-gap">
+      <h2>우리 집 상황</h2>
+      <p class="muted" style="font-size:1.05rem;">전수조사 자가점검에 써요. 한 번만 적어두세요.</p>
+      <div class="form-row">
+        <label for="f-registry">농지대장에 빌린 사람 이름이 있나요?</label>
+        <select id="f-registry">
+          <option value="">선택해주세요</option>
+          <option value="yes">예, 있어요</option>
+          <option value="no">아니오, 없어요</option>
+          <option value="unknown">모르겠어요</option>
+        </select>
+        <p class="hint">읍·면사무소에서 떼는 땅 서류(농지대장)에 빌린 분 이름이 적혀 있는지요.</p>
+      </div>
+      <div class="form-row">
+        <label for="f-jikbul">직불금은 누가 받나요?</label>
+        <select id="f-jikbul">
+          <option value="">선택해주세요</option>
+          <option value="owner">땅 주인이 받아요</option>
+          <option value="farmer">실제 농사짓는 분이 받아요</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" type="button" id="btn-save-profile">우리 집 상황 저장하기</button>
+      <p class="msg" id="profile-msg"></p>
     </section>
 
     <section class="card section-gap">
@@ -179,9 +230,15 @@
     parcels.forEach(function (p, i) {
       var shareNote = (p.share && p.share !== "전부") ? " · " + esc(p.share) + " 지분" : "";
       var priceNote = p.price ? " · " + Number(p.price).toLocaleString("ko-KR") + "원/㎡" : "";
+      var storyNote = "";
+      var acq = F.acqTypeLabel(p.acqType);
+      var use = F.useStatusLabel(p.useStatus);
+      if (acq || p.acqYear || use) {
+        storyNote = "<small>" + esc([acq, p.acqYear ? p.acqYear + "년" : "", use].filter(Boolean).join(" · ")) + "</small>";
+      }
       html += "<div class='parcel-row'><div class='info'><b>" + esc(p.jibun) + "</b> · " + esc(F.jimokLabel(p.jimok))
         + "<br><span class='area' data-m2='" + Math.round(Number(p.area) || 0) + "'></span>"
-        + "<small>" + esc(p.addr || "") + shareNote + priceNote + "</small></div>"
+        + "<small>" + esc(p.addr || "") + shareNote + priceNote + "</small>" + storyNote + "</div>"
         + "<button class='del-btn' type='button' data-i='" + i + "'>삭제</button></div>";
     });
     list.innerHTML = html;
@@ -250,7 +307,13 @@
         area: Math.round(area),
         share: $("f-share").value,
         price: $("f-price").value ? Number($("f-price").value) : null,
-        addr: addr
+        addr: addr,
+        sido: $("f-sido").value,
+        sigungu: $("f-sigungu").value.trim(),
+        dong: $("f-dong").value.trim(),
+        acqType: $("f-acqtype").value,
+        acqYear: $("f-acqyear").value ? Number($("f-acqyear").value) : null,
+        useStatus: $("f-usestatus").value
       };
       var arr = F.getParcels();
       arr.push(p);
@@ -258,6 +321,19 @@
       renderList();
       setMsg("add-msg", "추가했어요.", true);
       $("f-jibun").value = ""; $("f-area").value = ""; $("f-price").value = "";
+      $("f-acqtype").value = ""; $("f-acqyear").value = ""; $("f-usestatus").value = "";
+    });
+
+    // 우리 집 상황 불러오기/저장
+    function fillProfileForm() {
+      var pr = F.getProfile();
+      $("f-registry").value = pr.registry || "";
+      $("f-jikbul").value = pr.jikbul || "";
+    }
+    fillProfileForm();
+    $("btn-save-profile").addEventListener("click", function () {
+      F.saveProfile({ registry: $("f-registry").value, jikbul: $("f-jikbul").value });
+      setMsg("profile-msg", "저장했어요.", true);
     });
 
     $("btn-make-code").addEventListener("click", function () {
@@ -268,7 +344,7 @@
       var btn = this;
       btn.disabled = true;
       setMsg("code-msg", "코드를 만들고 있어요…", true);
-      F.familyCreate(parcels).then(function (code) {
+      F.familyCreate(parcels, F.getProfile()).then(function (code) {
         $("code-display").textContent = code;
         $("code-result").style.display = "block";
         F.saveFamilyCode(code);
@@ -286,11 +362,13 @@
       code = String(code || "").trim();
       if (!code) { setMsg("load-msg", "코드를 입력해주세요."); return; }
       setMsg("load-msg", "불러오는 중이에요…", true);
-      F.familyFetch(code).then(function (parcels) {
-        F.saveParcels(parcels);
+      F.familyFetch(code).then(function (res) {
+        F.saveParcels(res.parcels);
+        F.saveProfile(res.profile || {});
+        fillProfileForm();
         F.saveFamilyCode(code.toUpperCase());
         renderList();
-        setMsg("load-msg", doneMsg || ("땅 " + parcels.length + "필지를 불러왔어요."), true);
+        setMsg("load-msg", doneMsg || ("땅 " + res.parcels.length + "필지를 불러왔어요."), true);
       }).catch(function (e) {
         setMsg("load-msg", e.message || "불러오지 못했어요.");
       });
