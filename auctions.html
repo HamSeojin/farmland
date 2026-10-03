@@ -225,7 +225,7 @@
       sel.appendChild(o);
     });
   }
-  function initLiveSearch() {
+  function initLiveSearch(region) {
     var selSido = document.getElementById("sel-sido");
     var selSgg = document.getElementById("sel-sgg");
     var btn = document.getElementById("btn-live-search");
@@ -237,9 +237,16 @@
       o.value = name; o.textContent = name;
       selSido.appendChild(o);
     });
-    selSido.value = "강원특별자치도";
-    fillSgg("강원특별자치도", selSgg);
-    selSgg.value = "강릉시";
+    // 등록된 땅 지역을 기본값으로
+    var defSido = "강원특별자치도", defSgg = "강릉시";
+    if (region && region.sido && SIDO_SGG[region.sido]) {
+      defSido = region.sido;
+      var sggList = SIDO_SGG[region.sido] || [];
+      defSgg = sggList.indexOf(region.sigungu) >= 0 ? region.sigungu : (sggList[0] || "");
+    }
+    selSido.value = defSido;
+    fillSgg(defSido, selSgg);
+    if (defSgg) selSgg.value = defSgg;
     selSido.addEventListener("change", function () {
       fillSgg(selSido.value, selSgg);
     });
@@ -286,9 +293,27 @@
   document.addEventListener("DOMContentLoaded", function () {
     var el = document.getElementById("auction-content");
     var au = (typeof AUCTIONS !== "undefined") ? AUCTIONS : { court: [], onbid: [] };
-    el.innerHTML = section("법원경매", au.court) + section("온비드공매", au.onbid);
+    var F = window.FarmlandApp || {};
+    var region = F.mainRegion ? F.mainRegion() : null;
+    var sigungu = region && region.sigungu ? region.sigungu : "";
+    var sub = document.querySelector(".header-sub");
+    if (sigungu) {
+      // 등록된 땅의 시군구 기준 필터
+      var court = au.court.filter(function (a) { return (a.addrShort || "").indexOf(sigungu) === 0; });
+      var onbid = au.onbid.filter(function (a) { return (a.addrShort || "").indexOf(sigungu) === 0; });
+      if (sub) sub.textContent = sigungu + " 토지";
+      if (!court.length && !onbid.length) {
+        el.innerHTML = '<div class="trade-group"><div class="trade-month">우리 땅 근처</div>'
+          + "<p class='muted'>" + sigungu + "의 경매·공매 자료는 아직 준비 중이에요. "
+          + "아래에서 직접 검색해보세요.</p></div>";
+      } else {
+        el.innerHTML = section("법원경매", court) + section("온비드공매", onbid);
+      }
+    } else {
+      el.innerHTML = section("법원경매", au.court) + section("온비드공매", au.onbid);
+    }
     if (window.FarmlandApp) window.FarmlandApp.renderAreas();
-    initLiveSearch();
+    initLiveSearch(region);
   });
 })();
 </script>
