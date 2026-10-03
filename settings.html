@@ -180,6 +180,8 @@
       <p class="note" id="refresh-note" style="display:none;">저장된 코드가 있어요. 땅 정보가 바뀌었으면 다시 불러오세요.</p>
       <p class="msg" id="load-msg"></p>
     </section>
+
+    <p class="note" style="text-align:center;" id="app-version"></p>
   </main>
 
   <nav class="bottom-nav">
@@ -291,6 +293,11 @@
       $("refresh-note").style.display = "block";
       $("f-code").value = savedCode;
     }
+
+    // 앱 버전 표시
+    fetch("VERSION").then(function (r) { return r.text(); }).then(function (t) {
+      $("app-version").textContent = "앱 버전 " + t.trim();
+    }).catch(function () {});
 
     $("btn-add").addEventListener("click", function () {
       setMsg("add-msg", "");
