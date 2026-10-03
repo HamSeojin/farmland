@@ -23,6 +23,10 @@
   </header>
 
   <main class="content">
+    <div class="unit-seg" role="group" aria-label="토지·건물" style="margin-bottom:1rem;">
+      <button type="button" data-tab="land" class="on">토지</button>
+      <button type="button" data-tab="bldg">건물</button>
+    </div>
     <div id="auction-content"></div>
 
     <section class="card" id="live-search">
@@ -74,16 +78,19 @@
   }
   function auctionCard(a) {
     var isCourt = a.type === "court";
+    var isBldg = !!a.bldg;
     var title = isCourt ? "법원경매" : "온비드공매";
     var dateRow = isCourt
       ? '<div class="t-row"><span class="k">매각기일</span><span>' + (a.saleDate || "–") + "</span></div>"
       : '<div class="t-row"><span class="k">입찰기간</span><span>' + (a.bidPeriod || "–") + "</span></div>";
     var extraRow = isCourt
       ? '<div class="t-row"><span class="k">사건번호</span><span>' + (a.displayNo || a.id || "–") + "</span></div>"
-      : '<div class="t-row"><span class="k">구분</span><span>' + (a.divName || "–") + "</span></div>";
+      : '<div class="t-row"><span class="k">관리번호</span><span>' + (a.id || "–") + "</span></div>"
+        + '<div class="t-row"><span class="k">구분</span><span>' + (a.divName || "–") + "</span></div>";
+    var areaLabel = isBldg ? "종류 · 건물면적" : "종류 · 면적";
     return '<div class="trade-card">'
       + '<div class="t-date">' + title + " · " + (a.addrShort || "") + "</div>"
-      + '<div class="t-row"><span class="k">종류 · 면적</span><span>' + jimokEasy(a.kind)
+      + '<div class="t-row"><span class="k">' + areaLabel + "</span><span>" + jimokEasy(a.kind)
       + ' <span class="area" data-m2="' + (a.areaM2 || 0) + '"></span></span></div>'
       + '<div class="t-row"><span class="k">감정가</span><span>' + moneyFull(a.apslManwon) + "</span></div>"
       + '<div class="t-row"><span class="k">최저가</span><span><b>' + moneyFull(a.lowManwon) + "</b></span></div>"
@@ -143,22 +150,31 @@
     if (b && e) return b + " ~ " + e;
     return b || e || "";
   }
-  function isLandLive(it) {
-    var cat = normV(it.cltrUsgSclsCtgrNm);
-    return ["전", "답", "임야"].some(function (k) { return cat.indexOf(k) >= 0; });
+  function classifyLive(cat) {
+    if (!cat) return null;
+    if (cat.slice(-2) === "용지" || cat === "대" || cat === "대지" || cat === "잡종지") return "land";
+    var bldgKw = ["주택", "아파트", "근린생활시설", "상가", "주거용건물", "오피스텔", "빌라", "빌딩", "사무실", "공장", "창고", "숙박시설"];
+    for (var i = 0; i < bldgKw.length; i++) if (cat.indexOf(bldgKw[i]) >= 0) return "building";
+    var landKw = ["전", "답", "임야"];
+    for (var j = 0; j < landKw.length; j++) if (cat.indexOf(landKw[j]) >= 0) return "land";
+    return null;
   }
   function normalizeLiveItem(it) {
     var addr = normV(it.onbidCltrNm) || normV(it.zadrNm) || normV(it.cltrAdr) || normV(it.cltrRadr);
     var m = addr.match(/([가-힣]+리)\b/);
     var short = [normV(it.lctnSggnm), normV(it.lctnEmdNm), m ? m[1] : ""].filter(Boolean).join(" ");
-    var area = parseFloat(normV(it.landSqms).replace(/,/g, "")) ||
-               parseFloat(normV(it.bldSqms).replace(/,/g, "")) || 0;
+    var cat = normV(it.cltrUsgSclsCtgrNm);
+    var isBldg = classifyLive(cat) === "building";
+    var landA = parseFloat(normV(it.landSqms).replace(/,/g, "")) || 0;
+    var bldA = parseFloat(normV(it.bldSqms).replace(/,/g, "")) || 0;
     return {
+      id: normV(it.cltrMngNo),
       type: "onbid",
+      bldg: isBldg,
       addr: addr,
       addrShort: short,
-      kind: normV(it.cltrUsgSclsCtgrNm),
-      areaM2: area,
+      kind: cat,
+      areaM2: isBldg ? (bldA || landA) : (landA || bldA),
       apslManwon: toManwonLive(it.apslEvlAmt),
       lowManwon: toManwonLive(it.lowstBidPrcIndctCont),
       bidPeriod: fmtPeriodLive(it),
@@ -175,7 +191,7 @@
     var today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
     var groups = {};
     rawItems.forEach(function (it) {
-      if (!isLandLive(it)) return;
+      if (!classifyLive(normV(it.cltrUsgSclsCtgrNm))) return;
       var k = normV(it.cltrMngNo) || normV(it.onbidCltrNm);
       (groups[k] = groups[k] || []).push(normalizeLiveItem(it));
     });
@@ -271,10 +287,12 @@
         var items = pickLiveRounds(raw);
         btn.disabled = false;
         if (!items.length) {
-          status.textContent = "이 지역에는 지금 나온 공매 땅이 없어요.";
+          status.textContent = "이 지역에는 지금 나온 공매가 없어요.";
           return;
         }
-        status.textContent = label + " 공매 " + items.length + "건이에요.";
+        var bldgN = items.filter(function (a) { return a.bldg; }).length;
+        status.textContent = label + " 공매 " + items.length + "건이에요"
+          + (bldgN ? " (토지 " + (items.length - bldgN) + ", 건물 " + bldgN + ")" : "") + ".";
         var html = "";
         items.forEach(function (a) { html += auctionCard(a); });
         results.innerHTML = html;
@@ -297,22 +315,57 @@
     var region = F.mainRegion ? F.mainRegion() : null;
     var sigungu = region && region.sigungu ? region.sigungu : "";
     var sub = document.querySelector(".header-sub");
-    if (sigungu) {
-      // 등록된 땅의 시군구 기준 필터
-      var court = au.court.filter(function (a) { return (a.addrShort || "").indexOf(sigungu) === 0; });
-      var onbid = au.onbid.filter(function (a) { return (a.addrShort || "").indexOf(sigungu) === 0; });
-      if (sub) sub.textContent = sigungu + " 토지";
-      if (!court.length && !onbid.length) {
-        el.innerHTML = '<div class="trade-group"><div class="trade-month">우리 땅 근처</div>'
-          + "<p class='muted'>" + sigungu + "의 경매·공매 자료는 아직 준비 중이에요. "
-          + "아래에서 직접 검색해보세요.</p></div>";
+    var tab = "land";
+
+    function itemsFor(list) {
+      var isBldg = tab === "bldg";
+      return list.filter(function (a) {
+        if (!!a.bldg !== isBldg) return false;
+        return !sigungu || (a.addrShort || "").indexOf(sigungu) === 0;
+      });
+    }
+
+    function render() {
+      var court = itemsFor(au.court.concat(au.courtBldg || []));
+      var onbid = itemsFor(au.onbid.concat(au.onbidBldg || []));
+      var label = tab === "bldg" ? "건물" : "토지";
+      if (sigungu) {
+        if (sub) sub.textContent = sigungu + " " + label;
+        if (!court.length && !onbid.length) {
+          el.innerHTML = '<div class="trade-group"><div class="trade-month">우리 땅 근처</div>'
+            + "<p class='muted'>" + sigungu + "의 경매·공매 " + label + " 자료는 아직 준비 중이에요. "
+            + "아래에서 직접 검색해보세요.</p></div>";
+        } else {
+          el.innerHTML = section("법원경매", court) + section("온비드공매", onbid);
+        }
       } else {
+        if (sub) sub.textContent = "강릉·동해·삼척 " + label;
         el.innerHTML = section("법원경매", court) + section("온비드공매", onbid);
       }
-    } else {
-      el.innerHTML = section("법원경매", au.court) + section("온비드공매", au.onbid);
+      if (window.FarmlandApp) window.FarmlandApp.renderAreas();
     }
-    if (window.FarmlandApp) window.FarmlandApp.renderAreas();
+
+    // 토지·건물 탭
+    var tabBtns = document.querySelectorAll('[data-tab]');
+    tabBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        tabBtns.forEach(function (b) { b.classList.remove("on"); });
+        btn.classList.add("on");
+        tab = btn.getAttribute("data-tab");
+        render();
+        // 지도 핀도 탭에 맞춤
+        try { localStorage.setItem("auctionTab", tab); } catch (e) {}
+      });
+    });
+    try {
+      var saved = localStorage.getItem("auctionTab");
+      if (saved === "bldg") {
+        tab = "bldg";
+        tabBtns.forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === "bldg"); });
+      }
+    } catch (e) {}
+
+    render();
     initLiveSearch(region);
   });
 })();
