@@ -45,10 +45,18 @@
 
   /* 우리 땅 (설정식): 각자 폰 localStorage에 저장, 가족 코드는 서버 공유
      스키마: {jibun, jimok("답"|"전"), area(㎡, 지분반영), share("전부"|"1/2"|"1/3"),
-              price(원/㎡|null), addr} */
+              price(원/㎡|null), addr, sido, sigungu, dong,
+              acqType("inherit"|"buy"|"gift"|""), acqYear(숫자|null),
+              useStatus("rent"|"self"|"idle"|"bank"|"")} */
   var PARCELS_KEY = "farmland_parcels";
   var FAMILY_CODE_KEY = "farmland_family_code";
   var PENDING_KEY = "farmland_pending";
+  var PROFILE_KEY = "farmland_profile";
+
+  var ACQ_LABEL = { inherit: "상속", buy: "매매", gift: "증여" };
+  var USE_LABEL = { rent: "남에게 빌려줌", self: "직접 농사짓고 있음", idle: "놀고 있음(휴경)", bank: "농지은행에 맡김" };
+  function acqTypeLabel(t) { return ACQ_LABEL[t] || ""; }
+  function useStatusLabel(s) { return USE_LABEL[s] || ""; }
 
   function readJson(key, fallback) {
     try {
@@ -74,6 +82,48 @@
   }
   function saveParcels(arr) {
     writeJson(PARCELS_KEY, (arr || []).filter(validParcel));
+  }
+  /* 우리 집 상황 (전수조사 판단용): {registry("yes"|"no"|"unknown"|""), jikbul("owner"|"farmer"|"")} */
+  function getProfile() {
+    var p = readJson(PROFILE_KEY, {});
+    if (!p || typeof p !== "object") p = {};
+    return {
+      registry: (p.registry === "yes" || p.registry === "no" || p.registry === "unknown") ? p.registry : "",
+      jikbul: (p.jikbul === "owner" || p.jikbul === "farmer") ? p.jikbul : ""
+    };
+  }
+  function saveProfile(p) {
+    p = p || {};
+    writeJson(PROFILE_KEY, {
+      registry: (p.registry === "yes" || p.registry === "no" || p.registry === "unknown") ? p.registry : "",
+      jikbul: (p.jikbul === "owner" || p.jikbul === "farmer") ? p.jikbul : ""
+    });
+  }
+  /* 등록된 땅의 지역 모음: [{sido, sigungu, dong}] */
+  function parcelRegions() {
+    var seen = {}, out = [];
+    getParcels().forEach(function (p) {
+      var key = [p.sido || "", p.sigungu || "", p.dong || ""].join("|");
+      if (!seen[key] && (p.sido || p.sigungu)) {
+        seen[key] = 1;
+        out.push({ sido: p.sido || "", sigungu: p.sigungu || "", dong: p.dong || "" });
+      }
+    });
+    return out;
+  }
+  /* 가장 많은 필지가 있는 지역 (페이지별 기본 지역) */
+  function mainRegion() {
+    var counts = {}, order = [];
+    getParcels().forEach(function (p) {
+      if (!p.sigungu) return;
+      var key = [p.sido || "", p.sigungu || "", p.dong || ""].join("|");
+      if (!counts[key]) { counts[key] = 0; order.push(key); }
+      counts[key]++;
+    });
+    if (!order.length) return null;
+    order.sort(function (a, b) { return counts[b] - counts[a]; });
+    var parts = order[0].split("|");
+    return { sido: parts[0], sigungu: parts[1], dong: parts[2] };
   }
   function getFamilyCode() {
     try { return localStorage.getItem(FAMILY_CODE_KEY) || ""; } catch (e) { return ""; }
@@ -113,6 +163,72 @@
     return Math.round(area * price / 10000);
   }
 
+  /* 전수조사 자가점검
+     반환: {level: "empty"|"ok"|"info"|"warn"|"alert", totalArea, inheritArea, notes:[{level,text}]}
+     - 법적 확정이 아니라 "적어주신 내용 기준" 자가점검임을 화면에서 명시할 것 */
+  function judgeCensus() {
+    var parcels = getParcels();
+    var profile = getProfile();
+    if (!parcels.length) return { level: "empty", parcels: [], totalArea: 0, inheritArea: 0, notes: [] };
+
+    var totalArea = 0, inheritArea = 0;
+    var allPre1996 = true, hasYearInfo = false;
+    parcels.forEach(function (p) {
+      var a = Number(p.area) || 0;
+      totalArea += a;
+      if (p.acqType === "inherit") inheritArea += a;
+      var y = Number(p.acqYear) || 0;
+      if (y > 0) { hasYearInfo = true; if (y >= 1996) allPre1996 = false; }
+      else allPre1996 = false;
+    });
+
+    var notes = [];
+    var level = "ok";
+    function add(lv, text) {
+      notes.push({ level: lv, text: text });
+      if (lv === "alert") level = "alert";
+      else if (lv === "warn" && level !== "alert") level = "warn";
+      else if (lv === "info" && level === "ok") level = "info";
+    }
+
+    // 1996년 이전 취득분은 농지법 부칙으로 소유·임대 규정이 적용되지 않음
+    if (hasYearInfo && allPre1996) {
+      add("info", "1996년보다 전에 갖게 된 땅이라 이번(1단계) 조사 대상이 아니에요. 1996년 이전에 가진 땅은 2027년 2단계 조사 때 봐요.");
+      return { level: level, parcels: parcels, totalArea: totalArea, inheritArea: inheritArea, notes: notes };
+    }
+    if (!hasYearInfo) {
+      add("info", "땅을 갖게 된 해를 적어주면 조사 대상인지 바로 알려드려요. 설정에서 입력해주세요.");
+    }
+
+    if (inheritArea > 10000) {
+      add("warn", "상속받은 땅이 1만㎡를 넘어요(" + formatArea(inheritArea) + "). 넘은 부분은 농지은행에 맡기거나 처분해야 할 수 있어요.");
+    }
+
+    parcels.forEach(function (p) {
+      var name = p.jibun + "(" + jimokLabel(p.jimok) + ")";
+      if (p.useStatus === "idle") {
+        add("warn", name + ": 지금 놀고 있는 땅이에요. 정당한 사유 없이 방치하면 조사 대상이에요.");
+      } else if (p.useStatus === "rent") {
+        if (p.acqType === "buy" || p.acqType === "gift") {
+          add("alert", name + ": 사거나 증여받은 땅을 남에게 빌려주는 건 원칙적으로 안 돼요. 농지은행 위탁을 알아보세요.");
+        }
+        if (profile.jikbul === "owner") {
+          add("alert", name + ": 빌려줬는데 직불금을 땅 주인이 받고 있어요. 실제로 농사짓는 분이 받아야 해요.");
+        }
+        if (profile.registry === "no") {
+          add("warn", name + ": 농지대장에 빌린 사람 이름이 안 올라가 있어요. 읍·면사무소에서 확인하세요.");
+        } else if (!profile.registry) {
+          add("info", name + ": 농지대장에 빌린 사람 이름이 올라가 있는지 한 번 확인해보세요.");
+        }
+      }
+    });
+
+    if (!notes.length) {
+      add("ok", "적어주신 내용으로는 특별히 문제될 게 없어 보여요.");
+    }
+    return { level: level, parcels: parcels, totalArea: totalArea, inheritArea: inheritArea, notes: notes };
+  }
+
   /* 가족 코드 공유 (중계 서버) */
   var RELAY_BASE = "https://farmland-relay.813nanalove.workers.dev";
   function familyError(status, bodyText) {
@@ -127,12 +243,12 @@
     if (status === 503) return "지금은 서버 준비 중이에요. 잠시 후 다시 시도해주세요.";
     return "인터넷 연결을 확인하고 다시 시도해주세요.";
   }
-  // 우리 땅을 서버에 올리고 8자리 가족 코드 받기
-  function familyCreate(parcels) {
+  // 우리 땅 + 우리 집 상황을 서버에 올리고 8자리 가족 코드 받기
+  function familyCreate(parcels, profile) {
     return fetch(RELAY_BASE + "/api/family", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parcels: parcels })
+      body: JSON.stringify({ parcels: parcels, profile: profile || {} })
     }).then(function (r) {
       return r.text().then(function (t) {
         if (!r.ok) throw new Error(familyError(r.status, t));
@@ -145,7 +261,7 @@
       throw e;
     });
   }
-  // 가족 코드로 땅 정보 불러오기
+  // 가족 코드로 땅 정보 + 우리 집 상황 불러오기 → {parcels, profile}
   function familyFetch(code) {
     code = String(code || "").trim().toUpperCase();
     return fetch(RELAY_BASE + "/api/family?code=" + encodeURIComponent(code))
@@ -155,23 +271,36 @@
           var b = JSON.parse(t);
           var parcels = Array.isArray(b.parcels) ? b.parcels.filter(validParcel) : [];
           if (!parcels.length) throw new Error("코드를 다시 확인해주세요.");
-          return parcels;
+          return { parcels: parcels, profile: normalizeProfile(b.profile) };
         });
       }).catch(function (e) {
         if (e instanceof TypeError) throw new Error("인터넷 연결을 확인하고 다시 시도해주세요.");
         throw e;
       });
   }
+  function normalizeProfile(p) {
+    p = p || {};
+    return {
+      registry: (p.registry === "yes" || p.registry === "no" || p.registry === "unknown") ? p.registry : "",
+      jikbul: (p.jikbul === "owner" || p.jikbul === "farmer") ? p.jikbul : ""
+    };
+  }
 
   // 전역 노출 (map.js 등 페이지 스크립트에서 사용)
   window.FarmlandApp = {
     getUnit: getUnit,
     setUnit: setUnit,
-    toggleUnit: toggleUnit,
     formatArea: formatArea,
     renderAreas: renderAreas,
     getParcels: getParcels,
     saveParcels: saveParcels,
+    getProfile: getProfile,
+    saveProfile: saveProfile,
+    parcelRegions: parcelRegions,
+    mainRegion: mainRegion,
+    acqTypeLabel: acqTypeLabel,
+    useStatusLabel: useStatusLabel,
+    judgeCensus: judgeCensus,
     getFamilyCode: getFamilyCode,
     saveFamilyCode: saveFamilyCode,
     getPendingParcel: getPendingParcel,
