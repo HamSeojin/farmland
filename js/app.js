@@ -34,16 +34,13 @@
     }
   }
   function renderToggles() {
-    // 버튼 문구는 "바꿀 대상"을 보여줌: 지금 평이면 "m²로 보기"
-    var label = getUnit() === "pyong" ? "m²로 보기" : "평으로 보기";
-    var btns = document.querySelectorAll(".unit-toggle");
+    // 세그먼트 컨트롤: 현재 단위 버튼에 .on 표시
+    var unit = getUnit();
+    var btns = document.querySelectorAll(".unit-seg button");
     for (var i = 0; i < btns.length; i++) {
-      btns[i].textContent = label;
-      btns[i].setAttribute("aria-label", "면적 단위 바꾸기: " + label);
+      if (btns[i].getAttribute("data-unit") === unit) btns[i].classList.add("on");
+      else btns[i].classList.remove("on");
     }
-  }
-  function toggleUnit() {
-    setUnit(getUnit() === "pyong" ? "m2" : "pyong");
   }
 
   /* 우리 땅 (설정식): 각자 폰 localStorage에 저장, 가족 코드는 서버 공유
@@ -191,9 +188,11 @@
   document.addEventListener("DOMContentLoaded", function () {
     renderAreas();
     renderToggles();
-    var btns = document.querySelectorAll(".unit-toggle");
+    var btns = document.querySelectorAll(".unit-seg button");
     for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener("click", toggleUnit);
+      btns[i].addEventListener("click", function () {
+        setUnit(this.getAttribute("data-unit"));
+      });
     }
     // 하단 내비 활성 탭 표시
     var path = location.pathname.split("/").pop() || "index.html";
