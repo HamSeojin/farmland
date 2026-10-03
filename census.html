@@ -23,11 +23,17 @@
   </header>
 
   <main class="content">
-    <div class="status-box">
+    <div class="status-box" id="census-status">
       <div class="s-sub">우리가 할 일</div>
-      <div class="s-big">없음 (정상 확인됨)</div>
-      <div class="s-sub">따로 하실 일 없어요</div>
+      <div class="s-big" id="census-level">확인 중…</div>
+      <div class="s-sub" id="census-sub"></div>
     </div>
+
+    <section class="card" id="census-judge-card">
+      <h2>우리 땅 점검</h2>
+      <div id="census-judge"></div>
+      <p class="note">적어주신 내용 기준 자가점검이에요. 법적 확정이 아니니 정확한 건 읍·면사무소에 확인하세요.<br>농지은행: 1577-7770</p>
+    </section>
 
     <section class="card">
       <h2>전수조사가 뭐예요?</h2>
@@ -37,16 +43,6 @@
         · <b>기본조사</b> (2026년 5월~7월): 서류로 먼저 확인<br>
         · <b>자세한 조사</b> (2026년 12월까지): 의심되는 땅은 직접 나가서 확인
       </p>
-    </section>
-
-    <section class="card card-green">
-      <h2>우리 땅은 왜 괜찮아요?</h2>
-      <ul class="check-list">
-        <li>2018년에 상속받은 땅이에요</li>
-        <li>전체 <span class="area" data-m2="9514"></span>로 1만㎡(3,000평)보다 작아요</li>
-        <li>지금 적법하게 빌려주고 있어요 (임대차 계약 중)</li>
-      </ul>
-      <p class="note">위 세 가지가 모두 해당돼서 처분 대상이 아니에요.</p>
     </section>
 
     <section class="card">
@@ -69,7 +65,7 @@
           최종 결과는 올해 말쯤 나오고, 실제 조치는 2027년부터 본격화돼요. (동아일보)
         </li>
       </ul>
-      <p class="note">2026년 9월 기준 · 임대차 계약은 2027년 12월 31일까지예요. 재계약 시기에 맞춰 다시 확인해요.</p>
+      <p class="note">2026년 9월 기준 · 빌려주고 있다면 계약 기간을 확인해두세요. 재계약 시기에 맞춰 다시 확인해요.</p>
     </section>
   </main>
 
@@ -81,5 +77,58 @@
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  var F = window.FarmlandApp || {};
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var LEVEL_TEXT = {
+    ok: ["문제없어 보여요", "적어주신 내용 기준으로는요"],
+    info: ["확인할 게 있어요", "아래 내용을 읽어보세요"],
+    warn: ["확인이 필요해요", "읍·면사무소에 물어보세요"],
+    alert: ["꼭 확인하세요", "농지은행 1577-7770에도 물어보세요"]
+  };
+  var NOTE_ICON = { ok: "✓", info: "·", warn: "!", alert: "!!" };
+  document.addEventListener("DOMContentLoaded", function () {
+    var levelEl = document.getElementById("census-level");
+    var subEl = document.getElementById("census-sub");
+    var judgeEl = document.getElementById("census-judge");
+    var card = document.getElementById("census-judge-card");
+    if (!F.judgeCensus) return;
+    var j = F.judgeCensus();
+    if (j.level === "empty") {
+      levelEl.textContent = "땅 등록이 필요해요";
+      subEl.textContent = "우리 땅을 등록하면 점검해드려요";
+      judgeEl.innerHTML = "<p style='font-size:1.15rem;'>아직 등록된 땅이 없어요.<br>"
+        + "<a href='settings.html' style='color:#2e6b34;font-weight:800;'>설정에서 땅을 등록</a>해주세요.</p>";
+      return;
+    }
+    var lt = LEVEL_TEXT[j.level] || LEVEL_TEXT.info;
+    levelEl.textContent = lt[0];
+    subEl.textContent = lt[1];
+    var html = "<ul class='check-list'>";
+    j.parcels.forEach(function (p) {
+      var bits = [esc(p.jibun), esc(F.jimokLabel(p.jimok))];
+      var acq = F.acqTypeLabel(p.acqType);
+      if (acq || p.acqYear) bits.push(esc(acq + (p.acqYear ? " " + p.acqYear + "년" : "")));
+      var use = F.useStatusLabel(p.useStatus);
+      if (use) bits.push(esc(use));
+      html += "<li>" + bits.filter(Boolean).join(" · ")
+        + " <span class='area' data-m2='" + Math.round(Number(p.area) || 0) + "'></span></li>";
+    });
+    html += "</ul><ul class='check-list' style='margin-top:0.8rem;'>";
+    j.notes.forEach(function (n) {
+      html += "<li><b>[" + NOTE_ICON[n.level] + "]</b> " + esc(n.text) + "</li>";
+    });
+    html += "</ul>";
+    judgeEl.innerHTML = html;
+    if (F.renderAreas) F.renderAreas();
+  });
+})();
+</script>
 </body>
 </html>
