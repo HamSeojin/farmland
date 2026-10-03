@@ -23,6 +23,7 @@
   </header>
 
   <main class="content">
+    <p class="muted" id="trade-region-note" style="font-size:1.05rem;display:none;"></p>
     <p class="muted" id="trade-summary" style="font-size:1rem;"></p>
     <div id="trade-list"></div>
     <p class="note">2026년 9월 기준 · 국토교통부 실거래가 자료<br>지번은 앞자리만 공개돼요 (예: 5**)</p>
@@ -47,6 +48,38 @@
   document.addEventListener("DOMContentLoaded", function () {
     var list = document.getElementById("trade-list");
     var summary = document.getElementById("trade-summary");
+    var note = document.getElementById("trade-region-note");
+    var sub = document.querySelector(".header-sub");
+    var F = window.FarmlandApp || {};
+    var region = F.mainRegion ? F.mainRegion() : null;
+    var dong = region && region.dong ? region.dong : "";
+    // 등록된 땅의 동네(리) 기준. 현재 거래 데이터는 학산리만 있음.
+    var sameJimok = {};
+    (F.getParcels ? F.getParcels() : []).forEach(function (p) {
+      if (p.jimok) sameJimok[p.jimok] = 1;
+    });
+    function badge(jimok) {
+      if (sameJimok[jimok]) {
+        var label = jimok === "답" ? "논" : (jimok === "전" ? "밭" : jimok);
+        return " <span style='background:#e8f3e9;color:#1d4a22;font-size:0.85rem;font-weight:800;"
+          + "padding:0.15rem 0.5rem;border-radius:999px;'>우리 땅과 같은 " + label + "</span>";
+      }
+      return "";
+    }
+    if (dong && dong.indexOf("학산리") < 0) {
+      // 우리 땅 동네의 거래 자료가 아직 없음
+      if (sub) sub.textContent = dong + " 논·밭 · 최신순";
+      note.style.display = "block";
+      note.textContent = "등록한 땅(" + dong + ")의 거래 자료는 아직 준비 중이에요.";
+      summary.textContent = "";
+      list.innerHTML = "";
+      return;
+    }
+    if (dong && sub) sub.textContent = dong + " 논·밭 · 최신순";
+    if (!dong && note) {
+      note.style.display = "block";
+      note.textContent = "땅을 등록하면 우리 동네 거래를 보여드려요. 지금은 학산리 거래를 보여줘요.";
+    }
     summary.textContent = "총 " + TRADE_COUNT + "건 (2021년 10월 ~ 2026년 8월)";
     var lastYm = "";
     var html = "";
@@ -57,7 +90,7 @@
         lastYm = t.ym;
       }
       html += '<div class="trade-card">'
-        + '<div class="t-date">' + t.date + "</div>"
+        + '<div class="t-date">' + t.date + badge(t.jimok) + "</div>"
         + '<div class="t-row"><span class="k">위치 · 지목</span><span>학산리 ' + t.jibun + " · " + jimokEasy(t.jimok) + "</span></div>"
         + '<div class="t-row"><span class="k">면적</span><span class="area" data-m2="' + t.area + '"></span></div>'
         + '<div class="t-row"><span class="k per-unit-label">㎡당 가격</span><span class="per-unit-val" data-perm2="' + t.perM2 + '"></span></div>'
