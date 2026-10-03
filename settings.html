@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>우리 땅 설정 · 우리 땅 소식</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.form-row { margin: 0.9rem 0; }
+.form-row label { display: block; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem; }
+.form-row input, .form-row select {
+  width: 100%; font-size: 1.2rem; padding: 0.7rem 0.8rem;
+  border: 2px solid #c9c9c9; border-radius: 0.6rem; box-sizing: border-box;
+}
+.form-row .hint { font-size: 0.95rem; color: #666; margin-top: 0.25rem; }
+.addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.addr-grid .full { grid-column: 1 / -1; }
+.code-box {
+  text-align: center; font-size: 2.6rem; font-weight: 900; letter-spacing: 0.35rem;
+  background: #f0f6f0; border: 3px dashed #2e6b34; border-radius: 1rem;
+  padding: 1.2rem 0.5rem; margin: 1rem 0; word-break: break-all;
+}
+.msg { font-size: 1.1rem; font-weight: 700; margin: 0.6rem 0; min-height: 1.6rem; }
+.msg.ok { color: #2e6b34; }
+.msg.err { color: #b3261e; }
+.parcel-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.8rem; padding: 0.9rem 0.2rem; border-bottom: 1px solid #e0e0e0;
+}
+.parcel-row .info { font-size: 1.15rem; }
+.parcel-row .info small { display: block; color: #666; font-size: 0.95rem; margin-top: 0.2rem; }
+.del-btn {
+  flex: 0 0 auto; font-size: 1.05rem; padding: 0.6rem 1rem;
+  background: #fff; color: #b3261e; border: 2px solid #b3261e; border-radius: 0.6rem;
+}
+.section-gap { margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="app-header">
+    <div class="header-top">
+      <div>
+        <h1 class="header-title">우리 땅 설정</h1>
+        <p class="header-sub">땅을 등록하고 가족과 공유해요</p>
+      </div>
+    </div>
+    <button class="unit-toggle" type="button">m²로 보기</button>
+  </header>
+
+  <main class="content">
+    <section class="card">
+      <h2>내 땅 목록</h2>
+      <div id="parcel-list"></div>
+      <p class="msg" id="list-msg"></p>
+    </section>
+
+    <section class="card section-gap">
+      <h2>땅 추가하기</h2>
+      <p class="msg ok" id="pending-msg" style="display:none;">지도에서 고른 땅이에요. 주소와 공시지가를 입력하고 추가해주세요.</p>
+      <a class="btn btn-primary" href="map.html?mode=register">지도에서 고르기</a>
+      <p class="note">지도를 눌러 땅을 고르면 지번·면적이 자동으로 채워져요.</p>
+
+      <h3 style="font-size:1.3rem;margin:1.4rem 0 0.4rem;">직접 입력하기</h3>
+      <div class="form-row">
+        <label>주소</label>
+        <div class="addr-grid">
+          <select id="f-sido" aria-label="시도"></select>
+          <input id="f-sigungu" type="text" placeholder="시군구 (예: 강릉시)" autocomplete="off">
+          <input id="f-dong" type="text" class="full" placeholder="읍면동리 (예: 구정면 학산리)" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="f-jibun">지번</label>
+        <input id="f-jibun" type="text" placeholder="예: 123-45" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="f-jimok">지목</label>
+        <select id="f-jimok">
+          <option value="답">논 (답)</option>
+          <option value="전">밭 (전)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="f-area">면적 (㎡)</label>
+        <input id="f-area" type="number" inputmode="numeric" placeholder="예: 7279" min="1">
+        <p class="hint">지분이 있으면 나눈 실제 면적을 적어주세요. (예: 5,583㎡ 중 3분의 1이면 1861)</p>
+      </div>
+      <div class="form-row">
+        <label for="f-share">지분</label>
+        <select id="f-share">
+          <option value="전부">전부 (혼자 소유)</option>
+          <option value="1/2">2분의 1</option>
+          <option value="1/3">3분의 1</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="f-price">공시지가 (원/㎡)</label>
+        <input id="f-price" type="number" inputmode="numeric" placeholder="모르면 비워두세요" min="1">
+        <p class="hint">비워두면 땅값 합계에 포함되지 않아요.</p>
+      </div>
+      <button class="btn btn-primary" type="button" id="btn-add">이 땅 추가하기</button>
+      <p class="msg" id="add-msg"></p>
+      <p class="note">지도를 눌러 땅을 고르는 기능은 VWorld 키가 있어야 해요. 키가 없으면 여기에 직접 입력해주세요. (js/config.js 파일에 키 입력)</p>
+    </section>
+
+    <section class="card section-gap">
+      <h2>가족 코드</h2>
+      <p class="muted" style="font-size:1.05rem;">한 사람이 땅을 등록하고 코드를 만들면, 가족은 코드만 입력하면 똑같이 보여요.</p>
+      <button class="btn btn-outline" type="button" id="btn-make-code">가족 코드 만들기</button>
+      <div id="code-result" style="display:none;">
+        <div class="code-box" id="code-display"></div>
+        <p style="font-size:1.15rem;font-weight:700;text-align:center;">이 코드를 가족에게 알려주세요</p>
+      </div>
+      <p class="msg" id="code-msg"></p>
+
+      <h3 style="font-size:1.3rem;margin:1.4rem 0 0.4rem;">코드로 불러오기</h3>
+      <div class="form-row">
+        <label for="f-code">가족 코드</label>
+        <input id="f-code" type="text" placeholder="8자리 코드" autocomplete="off"
+               style="text-transform:uppercase;letter-spacing:0.2rem;" maxlength="12">
+      </div>
+      <button class="btn btn-outline" type="button" id="btn-load-code">코드로 불러오기</button>
+      <button class="btn btn-outline" type="button" id="btn-refresh" style="display:none;margin-top:0.6rem;">다시 불러오기</button>
+      <p class="note" id="refresh-note" style="display:none;">저장된 코드가 있어요. 땅 정보가 바뀌었으면 다시 불러오세요.</p>
+      <p class="msg" id="load-msg"></p>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html">첫 화면</a>
+    <a href="map.html">지도에서 찾기</a>
+  </nav>
+</div>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  var F = window.FarmlandApp || {};
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function setMsg(id, text, ok) {
+    var el = $(id);
+    el.textContent = text || "";
+    el.className = "msg" + (text ? (ok ? " ok" : " err") : "");
+  }
+
+  var SIDOS = ["서울특별시","부산광역시","대구광역시","인천광역시","광주광역시","대전광역시",
+    "울산광역시","세종특별자치시","경기도","강원특별자치도","충청북도","충청남도",
+    "전북특별자치도","전라남도","경상북도","경상남도","제주특별자치도"];
+  function fillSidos() {
+    var sel = $("f-sido");
+    sel.innerHTML = "";
+    SIDOS.forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = s; o.textContent = s;
+      sel.appendChild(o);
+    });
+  }
+
+  function renderList() {
+    var list = $("parcel-list");
+    var parcels = F.getParcels();
+    if (!parcels.length) {
+      list.innerHTML = "<p class='muted' style='font-size:1.1rem;'>등록된 땅이 없어요.<br>아래에서 추가해주세요.</p>";
+      return;
+    }
+    var html = "";
+    parcels.forEach(function (p, i) {
+      var shareNote = (p.share && p.share !== "전부") ? " · " + esc(p.share) + " 지분" : "";
+      var priceNote = p.price ? " · " + Number(p.price).toLocaleString("ko-KR") + "원/㎡" : "";
+      html += "<div class='parcel-row'><div class='info'><b>" + esc(p.jibun) + "</b> · " + esc(F.jimokLabel(p.jimok))
+        + "<br><span class='area' data-m2='" + Math.round(Number(p.area) || 0) + "'></span>"
+        + "<small>" + esc(p.addr || "") + shareNote + priceNote + "</small></div>"
+        + "<button class='del-btn' type='button' data-i='" + i + "'>삭제</button></div>";
+    });
+    list.innerHTML = html;
+    F.renderAreas();
+    var btns = list.querySelectorAll(".del-btn");
+    for (var k = 0; k < btns.length; k++) {
+      btns[k].addEventListener("click", function () {
+        var arr = F.getParcels();
+        arr.splice(Number(this.getAttribute("data-i")), 1);
+        F.saveParcels(arr);
+        renderList();
+        setMsg("list-msg", "삭제했어요.", true);
+      });
+    }
+  }
+
+  function buildAddr() {
+    var parts = [$("f-sido").value, $("f-sigungu").value.trim(), $("f-dong").value.trim()];
+    return parts.filter(function (x) { return x; }).join(" ");
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    fillSidos();
+    renderList();
+
+    // 지도에서 고른 땅이 있으면 폼에 미리 채우기
+    var pending = F.getPendingParcel && F.getPendingParcel();
+    if (pending) {
+      if (pending.jibun) $("f-jibun").value = pending.jibun;
+      if (pending.jimok === "전" || pending.jimok === "답") $("f-jimok").value = pending.jimok;
+      if (pending.area) $("f-area").value = Math.round(Number(pending.area));
+      if (pending.addr) {
+        // "강원특별자치도 강릉시 구정면 학산리" 형태면 분리 시도
+        var m = String(pending.addr).match(/^(.*[시도])\s+(.*[시군구])\s+(.*)$/);
+        if (m) {
+          var si = SIDOS.indexOf(m[1]);
+          if (si >= 0) $("f-sido").selectedIndex = si;
+          $("f-sigungu").value = m[2];
+          $("f-dong").value = m[3];
+        }
+      }
+      $("pending-msg").style.display = "block";
+      F.clearPendingParcel();
+    }
+
+    // 저장된 가족 코드가 있으면 다시 불러오기 버튼 표시
+    var savedCode = F.getFamilyCode();
+    if (savedCode) {
+      $("btn-refresh").style.display = "block";
+      $("refresh-note").style.display = "block";
+      $("f-code").value = savedCode;
+    }
+
+    $("btn-add").addEventListener("click", function () {
+      setMsg("add-msg", "");
+      var jibun = $("f-jibun").value.trim();
+      var jimok = $("f-jimok").value;
+      var area = Number($("f-area").value);
+      var addr = buildAddr();
+      if (!jibun) { setMsg("add-msg", "지번을 입력해주세요. (예: 123-45)"); return; }
+      if (!(area > 0)) { setMsg("add-msg", "면적을 숫자로 입력해주세요."); return; }
+      if (!addr) { setMsg("add-msg", "주소를 입력해주세요."); return; }
+      var p = {
+        jibun: jibun,
+        jimok: jimok,
+        area: Math.round(area),
+        share: $("f-share").value,
+        price: $("f-price").value ? Number($("f-price").value) : null,
+        addr: addr
+      };
+      var arr = F.getParcels();
+      arr.push(p);
+      F.saveParcels(arr);
+      renderList();
+      setMsg("add-msg", "추가했어요.", true);
+      $("f-jibun").value = ""; $("f-area").value = ""; $("f-price").value = "";
+    });
+
+    $("btn-make-code").addEventListener("click", function () {
+      setMsg("code-msg", "");
+      $("code-result").style.display = "none";
+      var parcels = F.getParcels();
+      if (!parcels.length) { setMsg("code-msg", "먼저 땅을 등록해주세요."); return; }
+      var btn = this;
+      btn.disabled = true;
+      setMsg("code-msg", "코드를 만들고 있어요…", true);
+      F.familyCreate(parcels).then(function (code) {
+        $("code-display").textContent = code;
+        $("code-result").style.display = "block";
+        F.saveFamilyCode(code);
+        $("btn-refresh").style.display = "block";
+        $("refresh-note").style.display = "block";
+        $("f-code").value = code;
+        setMsg("code-msg", "코드를 만들었어요.", true);
+      }).catch(function (e) {
+        setMsg("code-msg", e.message || "코드를 만들지 못했어요.");
+      }).then(function () { btn.disabled = false; });
+    });
+
+    function loadByCode(code, doneMsg) {
+      setMsg("load-msg", "");
+      code = String(code || "").trim();
+      if (!code) { setMsg("load-msg", "코드를 입력해주세요."); return; }
+      setMsg("load-msg", "불러오는 중이에요…", true);
+      F.familyFetch(code).then(function (parcels) {
+        F.saveParcels(parcels);
+        F.saveFamilyCode(code.toUpperCase());
+        renderList();
+        setMsg("load-msg", doneMsg || ("땅 " + parcels.length + "필지를 불러왔어요."), true);
+      }).catch(function (e) {
+        setMsg("load-msg", e.message || "불러오지 못했어요.");
+      });
+    }
+    $("btn-load-code").addEventListener("click", function () {
+      loadByCode($("f-code").value);
+    });
+    $("btn-refresh").addEventListener("click", function () {
+      loadByCode(F.getFamilyCode(), "최신 정보로 다시 불러왔어요.");
+    });
+  });
+})();
+</script>
+</body>
+</html>
