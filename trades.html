@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>인근 거래내역 · 우리 땅 소식</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="app-header">
+    <div class="header-top">
+      <div>
+        <h1 class="header-title">인근 거래내역</h1>
+        <p class="header-sub">학산리 논·밭 · 최신순</p>
+      </div>
+    </div>
+    <button class="unit-toggle" type="button">m²로 보기</button>
+  </header>
+
+  <main class="content">
+    <p class="muted" id="trade-summary" style="font-size:1rem;"></p>
+    <div id="trade-list"></div>
+    <p class="note">2026년 9월 기준 · 국토교통부 실거래가 자료<br>지번은 앞자리만 공개돼요 (예: 5**)</p>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html">첫 화면</a>
+    <a href="map.html">지도에서 찾기</a>
+  </nav>
+</div>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  function jimokEasy(j) { return j === "답" ? "논" : (j === "전" ? "밭" : j); }
+  function money(manwon) {
+    // 만원 단위 숫자를 읽기 쉽게 (예: 9622 -> 9,622만원)
+    return manwon.toLocaleString("ko-KR") + "만원";
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var list = document.getElementById("trade-list");
+    var summary = document.getElementById("trade-summary");
+    summary.textContent = "총 " + TRADE_COUNT + "건 (2021년 10월 ~ 2026년 8월)";
+    var lastYm = "";
+    var html = "";
+    TRADES.forEach(function (t) {
+      if (t.ym !== lastYm) {
+        if (lastYm !== "") html += "</div>";
+        html += '<div class="trade-group"><div class="trade-month">' + t.ym + "</div>";
+        lastYm = t.ym;
+      }
+      html += '<div class="trade-card">'
+        + '<div class="t-date">' + t.date + "</div>"
+        + '<div class="t-row"><span class="k">위치 · 지목</span><span>학산리 ' + t.jibun + " · " + jimokEasy(t.jimok) + "</span></div>"
+        + '<div class="t-row"><span class="k">면적</span><span class="area" data-m2="' + t.area + '"></span></div>'
+        + '<div class="t-row"><span class="k per-unit-label">㎡당 가격</span><span class="per-unit-val" data-perm2="' + t.perM2 + '"></span></div>'
+        + '<div class="t-price">' + money(t.amount) + "</div>"
+        + "</div>";
+    });
+    html += "</div>";
+    list.innerHTML = html;
+    // 동적 추가된 data-m2 요소 렌더링
+    if (window.FarmlandApp) window.FarmlandApp.renderAreas();
+    renderPerUnit();
+    document.addEventListener("farmland:unitchange", renderPerUnit);
+  });
+  // 단위 토글에 따라 ㎡당/평당 가격 표시 전환
+  function renderPerUnit() {
+    var pyong = !window.FarmlandApp || window.FarmlandApp.getUnit() === "pyong";
+    var labels = document.querySelectorAll(".per-unit-label");
+    var vals = document.querySelectorAll(".per-unit-val");
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].textContent = pyong ? "평당 가격" : "㎡당 가격";
+    }
+    for (var j = 0; j < vals.length; j++) {
+      var perM2 = Number(vals[j].getAttribute("data-perm2"));
+      var v = pyong ? Math.round(perM2 * 3.3058) : perM2;
+      vals[j].textContent = "약 " + v.toLocaleString("ko-KR") + "만원";
+    }
+  }
+})();
+</script>
+</body>
+</html>
